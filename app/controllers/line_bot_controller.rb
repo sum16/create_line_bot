@@ -10,6 +10,26 @@ class LineBotController < ApplicationController
     unless client.validate_signature(body, signature)
       return head :bad_request
     end
+    # events以下の要素を配列で取得 #３の形に変換
+    events = client.parse_events_from(body)
+    # p "イベント：　#{events}"
+    events.each do |event|
+      case event
+        # Line::Bot::Event::Messageクラスかどうか判定/メッセージイベントであった場合、次のcase文が実行
+      when Line::Bot::Event::Message
+        case event.type
+        when Line::Bot::Event::MessageType::Text
+          message = {
+            type: 'text',
+            text: event.message['text'] # テキストを取得
+          }
+          # p message
+          # 第一引数に応答トークン、第二引数に先程宣言したmessageを渡すと、メッセージの返信がおこなわれる
+          client.reply_message(event['replyToken'], message)
+        end
+      end
+    end
+    head :ok
   end
 
   private
@@ -37,3 +57,25 @@ end
 #  Line::Bot::Clientクラスのvalidate_signatureメソッドは、メッセージボディと署名を引数として受け取り、署名の検証をおこなう → trueかfalsで返却
 
 # headメソッドはステータスコードを返したいときに使用 :bad_requestを指定すると400が返されます。
+
+
+#3 
+# [
+#   {
+#     "type"=>"message",
+#     "replyToken"=>"xxxxx",
+#     "source"=>
+#     {
+#       "userId"=>"xxxxx",
+#       "type"=>"user"
+#     },
+#     "timestamp"=>1604318772845,
+#     "mode"=>"active",
+#     "message"=>
+#     {
+#       type"=>"text",
+#       "id"=>"xxxxx",
+#       "text"=>"こんにちは"
+#     }
+#   }
+# ]
